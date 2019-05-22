@@ -6880,6 +6880,9 @@
     <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimComposite_16x.png" Hash="f3c416b721260d66cc6d1521e122af5376fda025" />
     <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimComposite_64x.png" Hash="d0ae8a746a946632a37c9bdee579b54e0607e167" />
     <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimInstance_16x.png" Hash="fd94b10c4aca02988884f3a4d268f0d580ac246d" />
+    <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimInstance_64x.png" Hash="88931a1aecc7d190771106ab123b9c93b07bff4f" />
+    <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimLayerInterface_16x.png" Hash="e70493bd47fa6939ff90672d67cf0152e6657455" />
+    <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimLayerInterface_64x.png" Hash="3fa7dee101dfb8f882af3e6b9fa72b9bab078af5" />
     <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimMontage_16x.png" Hash="d87c3543fa7788114db1a94482443eec923d9c39" />
     <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimMontage_64x.png" Hash="0b795817ee253961253ffea6c0651c8cb2cea458" />
     <File Name="Engine/Content/Editor/Slate/Icons/AssetIcons/AnimSequence_16x.png" Hash="aa3fcab7c99dc3fbfa60d104d02fd076ffc70c54" />
