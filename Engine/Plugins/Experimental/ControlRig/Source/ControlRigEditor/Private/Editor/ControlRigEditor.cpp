@@ -52,14 +52,12 @@
 #include "ControlRig/Private/Units/Hierarchy/RigUnit_SetRelativeBoneTransform.h"
 #include "ControlRig/Private/Units/Hierarchy/RigUnit_GetInitialBoneTransform.h"
 #include "ControlRig/Private/Units/Hierarchy/RigUnit_AddBoneTransform.h"
-#include "ControlRig/Private/Units/Execution/RigUnit_BeginExecution.h"
 #include "Graph/NodeSpawners/ControlRigUnitNodeSpawner.h"
 #include "Graph/ControlRigGraphSchema.h"
 #include "ControlRigObjectVersion.h"
 #include "EdGraphUtilities.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "SNodePanel.h"
-#include "Kismet/Private/SMyBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "ControlRigEditor"
 
@@ -203,21 +201,6 @@ void FControlRigEditor::InitControlRigEditor(const EToolkitMode::Type Mode, cons
 			{
 				OpenGraphAndBringToFront(Graph);
 				break;
-			}
-		}
-
-	}
-
-	if (InControlRigBlueprint)
-	{
-		if (UControlRigModel* Model = InControlRigBlueprint->Model)
-		{
-			if (Model->Nodes().Num() == 0)
-			{
-				if (UControlRigController* Controller = InControlRigBlueprint->ModelController)
-				{
-					Controller->AddNode(FRigUnit_BeginExecution::StaticStruct()->GetFName());
-				}
 			}
 		}
 	}
@@ -644,22 +627,6 @@ void FControlRigEditor::RedoAction()
 void FControlRigEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints)
 {
 	FBlueprintEditor::CreateDefaultTabContents(InBlueprints);
-}
-
-bool FControlRigEditor::IsSectionVisible(NodeSectionID::Type InSectionID) const
-{
-	switch (InSectionID)
-	{
-		case NodeSectionID::GRAPH:
-		{
-			return true;
-		}
-		default:
-		{
-			break;
-		}
-	}
-	return false;
 }
 
 FGraphAppearanceInfo FControlRigEditor::GetGraphAppearance(UEdGraph* InGraph) const

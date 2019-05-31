@@ -30,21 +30,6 @@ public:
 
 	FAnimNode_CustomProperty();
 
-	/* Set Target Instance */
-	void SetTargetInstance(UObject* InInstance);
-
-	/* Get Target Instance by type for convenience */
-	template<class T>
-	T* GetTargetInstance() const
-	{
-		if (TargetInstance && !TargetInstance->IsPendingKill())
-		{
-			return Cast<T>(TargetInstance);
-		}
-
-		return nullptr;
-	}
-
 protected:
 	/** List of source properties to use, 1-1 with Dest names below, built by the compiler */
 	UPROPERTY()
@@ -81,9 +66,24 @@ protected:
 
 	virtual void PreUpdate(const UAnimInstance* InAnimInstance) override;
 
+	/* Set Target Instance */
+	void SetTargetInstance(UObject* InInstance);
+
+	/* Get Target Instance by type for convenience */
+	template<class T>
+	T* GetTargetInstance() const
+	{
+		if (TargetInstance && !TargetInstance->IsPendingKill())
+		{
+			return Cast<T>(TargetInstance);
+		}
+
+		return nullptr;
+	}
+
 	/* Initialize property links from the source instance, in this case AnimInstance 
 	 * Compiler creates those properties during compile time */
-	void InitializeProperties(const UObject* InSourceInstance, UClass* InTargetClass);
+	void InitializeProperties(const UObject* InSourceInstance);
 
 	/* Propagate the Source Instances' properties to Target Instance*/
 	void PropagateInputProperties(const UObject* InSourceInstance);
