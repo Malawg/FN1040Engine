@@ -648,22 +648,6 @@ public:
 	}
 
 	/**
-	 * Get the sound stat flags enabled for this viewport
-	 */
-	virtual ESoundShowFlags::Type GetSoundShowFlags() const override
-	{ 
-		return SoundShowFlags;
-	}
-
-	/**
-	 * Set the sound stat flags enabled for this viewport
-	 */
-	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) override
-	{
-		SoundShowFlags = InSoundShowFlags;
-	}
-
-	/**
 	 * Set whether to ignore input.
 	 */
 	void SetIgnoreInput(bool Ignore)
@@ -936,9 +920,6 @@ private:
 
 	/** A list of all the stat names which are enabled for this viewport (static so they persist between runs) */
 	static TArray<FString> EnabledStats;
-
-	/** Those sound stat flags which are enabled on this viewport */
-	static ESoundShowFlags::Type SoundShowFlags;
 
 	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
 	bool bDisableSplitScreenOverride;
