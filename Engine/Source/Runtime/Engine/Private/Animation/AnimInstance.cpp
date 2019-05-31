@@ -337,7 +337,7 @@ void UAnimInstance::UpdateMontageSyncGroup()
 	}
 }
 
-bool UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMotion, EUpdateAnimationFlag UpdateFlag)
+void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMotion)
 {
 	LLM_SCOPE(ELLMTag::Animation);
 
@@ -401,7 +401,7 @@ bool UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 				when we also update the AnimGraph as well.
 				This means that calls to 'Evaluation' without a call to 'Update' prior will render stale data, but that's to be expected.
 			*/
-			return false;
+			return;
 		}
 	}
 
@@ -427,7 +427,7 @@ bool UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 
 		if (UpdateSnapshotAndSkipRemainingUpdate())
 		{
-			return false;
+			return;
 		}
 	}
 #endif
@@ -460,34 +460,13 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
 		BlueprintUpdateAnimation(DeltaSeconds);
 	}
-	
-	// Determine whether or not the animation should be immediately updated according to current state
-	const bool bWantsImmediateUpdate = bNeedsValidRootMotion || NeedsImmediateUpdate(DeltaSeconds);
 
-	// Determine whether or not we can or should actually immediately update the animation state
-	bool bShouldImmediateUpdate = bWantsImmediateUpdate;
-	switch (UpdateFlag)
-	{
-		case EUpdateAnimationFlag::ForceImmediateUpdate:
-		{
-			bShouldImmediateUpdate = true;
-			break;
-		}
-		case EUpdateAnimationFlag::ForceParallelUpdate:
-		{
-			bShouldImmediateUpdate = false;
-			break;
-		}
-	}
-
-	if(bShouldImmediateUpdate)
+	if(bNeedsValidRootMotion || NeedsImmediateUpdate(DeltaSeconds))
 	{
 		// cant use parallel update, so just do the work here (we call this function here to do the work on the game thread)
 		ParallelUpdateAnimation();
 		PostUpdateAnimation();
 	}
-
-	return bWantsImmediateUpdate;
 }
 
 void UAnimInstance::PreUpdateAnimation(float DeltaSeconds)
@@ -1217,7 +1196,7 @@ void UAnimInstance::UpdateCurvesToComponents(USkeletalMeshComponent* Component /
 		// this is only any thread because EndOfFrameUpdate update can restart render state
 		// and this needs to restart from worker thread
 		// EndOfFrameUpdate is done after all tick is updated, so in theory you shouldn't have 
-		FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+		FAnimInstanceProxy& Proxy = GetProxyOnAnyThread<FAnimInstanceProxy>();
 		Component->ApplyAnimationCurvesToComponent(&Proxy.GetAnimationCurves(EAnimCurveType::MaterialCurve), &Proxy.GetAnimationCurves(EAnimCurveType::MorphTargetCurve));
 	}
 }
