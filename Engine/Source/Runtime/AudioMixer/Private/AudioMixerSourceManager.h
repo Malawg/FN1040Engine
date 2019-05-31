@@ -149,6 +149,7 @@ namespace Audio
 		// This is the number of bytes the gain array is using:
 		// (Number of input channels * number of output channels) * sizeof float.
 		int32 CopySize;
+		bool bIsInit;
 
 		FSourceChannelMap(int32 InNumInChannels, int32 InNumOutChannels) 
 			: CopySize(InNumInChannels * InNumOutChannels * sizeof(float))
@@ -166,6 +167,7 @@ namespace Audio
 			CopySize = InNumInChannels * InNumOutChannels * sizeof(float);
 			FMemory::Memzero(ChannelStartGains, CopySize);
 			FMemory::Memzero(ChannelDestinationGains, CopySize);
+			bIsInit = true;
 		}
 
 		FORCEINLINE void CopyDestinationToStart()
@@ -176,11 +178,16 @@ namespace Audio
 		FORCEINLINE void SetChannelMap(const float* RESTRICT InChannelGains)
 		{
 			FMemory::Memcpy(ChannelDestinationGains, InChannelGains, CopySize);
+			if (bIsInit)
+			{
+				FMemory::Memcpy(ChannelStartGains, InChannelGains, CopySize);
+			}
 		}
 
 	private:
 		FSourceChannelMap()
 			: CopySize(0)
+			, bIsInit(true)
 		{
 		}
 	};
@@ -364,6 +371,7 @@ namespace Audio
 			uint32 NumInputChannels;
 			const uint32 NumFrames;
 			uint32 NumDeviceChannels;
+			uint8 bIsInitialDownmix : 1;
 
 			FSourceDownmixData(uint32 SourceNumChannels, uint32 NumDeviceOutputChannels, uint32 InNumFrames)
 				: PostEffectBuffers(nullptr)
@@ -376,6 +384,7 @@ namespace Audio
 				, NumInputChannels(SourceNumChannels)
 				, NumFrames(InNumFrames)
 				, NumDeviceChannels(NumDeviceOutputChannels)
+				, bIsInitialDownmix(true)
 			{
 			}
 
@@ -397,6 +406,7 @@ namespace Audio
 				FiveOneSubmixInfo.Reset(NumInputChannels, 6, NumFrames);
 				SevenOneSubmixInfo.Reset(NumInputChannels, 8, NumFrames);
 				AmbisonicsSubmixInfo.Reset(NumInputChannels, 4, NumFrames);
+				bIsInitialDownmix = true;
 			}
 		};
 

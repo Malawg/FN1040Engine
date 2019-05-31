@@ -2158,13 +2158,14 @@ namespace Audio
 				continue;
 			}
 
-			if (SourceInfo.bIs3D)
+			if (SourceInfo.bIs3D && !DownmixData.bIsInitialDownmix)
 			{
 				ComputeDownmix3D(DownmixData);
 			}
 			else
 			{
 				ComputeDownmix2D(DownmixData);
+				DownmixData.bIsInitialDownmix = false;
 			}
 		}
 	}
