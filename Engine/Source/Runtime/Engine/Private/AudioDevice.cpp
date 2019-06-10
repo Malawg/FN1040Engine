@@ -146,7 +146,10 @@ FAutoConsoleVariableRef CVarEnableBinauralAudioForAllSpatialSounds(
 	ECVF_Default);
 
 
-using FVirtualLoopPair = TPair<FActiveSound*, FAudioVirtualLoop>;
+namespace
+{
+	using FVirtualLoopPair = TPair<FActiveSound*, FAudioVirtualLoop>;
+} // namespace <>
 
 /*-----------------------------------------------------------------------------
 	FAudioDevice implementation.
@@ -2794,22 +2797,21 @@ void FAudioDevice::SetListener(UWorld* World, const int32 InViewportIndex, const
 	}
 
 
-	FAudioDevice* AudioDevice = this;
-	FAudioThread::RunCommandOnAudioThread([AudioDevice, WorldID, InViewportIndex, ListenerTransformCopy, InDeltaSeconds]()
+	FAudioThread::RunCommandOnAudioThread([this, WorldID, InViewportIndex, ListenerTransformCopy, InDeltaSeconds]()
 	{
 		// Broadcast to a 3rd party plugin listener observer if enabled
-		for (TAudioPluginListenerPtr PluginManager : AudioDevice->PluginListeners)
+		for (TAudioPluginListenerPtr PluginManager : PluginListeners)
 		{
-			PluginManager->OnListenerUpdated(AudioDevice, InViewportIndex, ListenerTransformCopy, InDeltaSeconds);
+			PluginManager->OnListenerUpdated(this, InViewportIndex, ListenerTransformCopy, InDeltaSeconds);
 		}
 
-		TArray<FListener>& AudioThreadListeners = AudioDevice->Listeners;
+		TArray<FListener>& AudioThreadListeners = Listeners;
 		if (InViewportIndex >= AudioThreadListeners.Num())
 		{
 			const int32 NumListeners = InViewportIndex - AudioThreadListeners.Num() + 1;
 			for (int32 i = 0; i < NumListeners; ++i)
 			{
-				AudioThreadListeners.Add(FListener(AudioDevice));
+				AudioThreadListeners.Add(FListener(this));
 			}
 		}
 
@@ -2824,6 +2826,12 @@ void FAudioDevice::SetListener(UWorld* World, const int32 InViewportIndex, const
 			logOrEnsureNanError(TEXT("FAudioDevice::SetListener has detected a NaN in Listener Velocity"));
 		}
 #endif
+
+		if (FAudioVirtualLoop::ShouldListenerMoveForceUpdate(Listener.Transform, ListenerTransformCopy))
+		{
+			const bool bForceUpdate = true;
+			UpdateVirtualLoops(bForceUpdate);
+		}
 
 		Listener.WorldID = WorldID;
 		Listener.Transform = ListenerTransformCopy;
@@ -3822,7 +3830,8 @@ void FAudioDevice::Update(bool bGameTicking)
 		SCOPED_NAMED_EVENT(FAudioDevice_UpdateVirtualLoops, FColor::Blue);
 		// Update which loops should re-trigger due to coming back into proximity
 		// or allowed by concurrency re-evaluating in context of other sounds stopping
-		UpdateVirtualLoops();
+		const bool bForceUpdate = false;
+		UpdateVirtualLoops(bForceUpdate);
 	}
 
 	// update if baked analysis is enabled
@@ -5722,7 +5731,7 @@ float FAudioDevice::GetGameDeltaTime() const
 	return FMath::Min(DeltaTime, 0.5f);
 }
 
-void FAudioDevice::UpdateVirtualLoops()
+void FAudioDevice::UpdateVirtualLoops(bool bForceUpdate)
 {
 	if (FAudioVirtualLoop::IsEnabled())
 	{
@@ -5755,7 +5764,7 @@ void FAudioDevice::UpdateVirtualLoops()
 
 			// If the loop is ready to realize, add to array to be re-triggered outside of the loop
 			// to avoid map manipulation while iterating.
-			if (VirtualLoop.CanRealize(DeltaTime))
+			if (VirtualLoop.CanRealize(DeltaTime, bForceUpdate))
 			{
 				VirtualLoopsToRetrigger.Add(VirtualLoop);
 			}
