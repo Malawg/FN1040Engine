@@ -258,6 +258,33 @@ void USoundCue::RecursivelySetExcludeBranchCulling(USoundNode* CurrentNode)
 	}
 }
 
+float USoundCue::FindMaxDistanceInternal() const
+{
+	float OutMaxDistance = 0.0f;
+	if (const FSoundAttenuationSettings* Settings = GetAttenuationSettingsToApply())
+	{
+		if (!Settings->bAttenuate)
+		{
+			return WORLD_MAX;
+		}
+
+		OutMaxDistance = FMath::Max(OutMaxDistance, Settings->GetMaxDimension());
+	}
+
+	if (FirstNode)
+	{
+		OutMaxDistance = FMath::Max(OutMaxDistance, FirstNode->GetMaxDistance());
+	}
+
+	if (OutMaxDistance >= 0.0f)
+	{
+		return OutMaxDistance;
+	}
+
+	// If no sound cue nodes has overridden the max distance, check the base attenuation
+	return USoundBase::GetMaxDistance();
+}
+
 void USoundCue::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
