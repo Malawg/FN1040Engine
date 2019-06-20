@@ -456,6 +456,9 @@ struct IAnimationStreamingManager : public IStreamingManager
 	/** Removes a Streamable Anim from the streaming manager. */
 	virtual bool RemoveStreamingAnim(UAnimStreamable* Anim) = 0;
 
+	/** Returns the memory a Streamable Anim is currently using */
+	virtual SIZE_T GetMemorySizeForAnim(const UAnimStreamable* Anim) = 0;
+
 	/**
 	 * Gets a pointer to a chunk of animation data
 	 *
@@ -463,7 +466,7 @@ struct IAnimationStreamingManager : public IStreamingManager
 	 * @param ChunkIndex	Index of the chunk we want
 	 * @return Either the desired chunk or NULL if it's not loaded
 	 */
-	virtual const FCompressedAnimSequence* GetLoadedChunk(const UAnimStreamable* Anim, uint32 ChunkIndex) const = 0;
+	virtual const FCompressedAnimSequence* GetLoadedChunk(const UAnimStreamable* Anim, uint32 ChunkIndex, bool bRequestNextChunk) const = 0;
 };
 
 /**
