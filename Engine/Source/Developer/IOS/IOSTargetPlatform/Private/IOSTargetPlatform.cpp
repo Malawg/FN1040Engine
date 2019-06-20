@@ -712,11 +712,22 @@ void FIOSTargetPlatform::GetAllWaveFormats(TArray<FName>& OutFormat) const
 	OutFormat.Add(NAME_ADPCM);
 }
 
-namespace
+namespace IOS
 {
 	void CachePlatformAudioCookOverrides(FPlatformAudioCookOverrides& OutOverrides)
 	{
 		const TCHAR* CategoryName = TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings");
+
+		GConfig->GetBool(CategoryName, TEXT("bUseAudioStreamCaching"), OutOverrides.bUseStreamCaching, GEngineIni);
+
+		/** Memory Load On Demand Settings */
+		if (OutOverrides.bUseStreamCaching)
+		{
+			// Cache size:
+			int32 RetrievedCacheSize = 32 * 1024;
+			GConfig->GetInt(CategoryName, TEXT("CacheSizeKB"), RetrievedCacheSize, GEngineIni);
+			OutOverrides.StreamCachingSettings.CacheSizeKB = RetrievedCacheSize;
+		}
 
 		GConfig->GetBool(CategoryName, TEXT("bResampleForDevice"), OutOverrides.bResampleForDevice, GEngineIni);
 
@@ -824,11 +835,11 @@ FPlatformAudioCookOverrides* FIOSTargetPlatform::GetAudioCompressionSettings() c
 
 	if (!bCachedPlatformSettings)
 	{
-		CachePlatformAudioCookOverrides(Settings);
+		IOS::CachePlatformAudioCookOverrides(Settings);
 		bCachedPlatformSettings = true;
 	}
 #else
-	CachePlatformAudioCookOverrides(Settings);
+	IOS::CachePlatformAudioCookOverrides(Settings);
 #endif
 
 	return &Settings;
