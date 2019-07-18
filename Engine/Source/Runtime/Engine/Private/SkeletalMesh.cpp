@@ -1498,6 +1498,12 @@ void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	Super::AddReferencedObjects( This, Collector );
 }
 
+void USkeletalMesh::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(Skeleton);
+}
+
 void USkeletalMesh::FlushRenderState()
 {
 	//TComponentReregisterContext<USkeletalMeshComponent> ReregisterContext;
