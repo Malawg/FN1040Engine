@@ -65,6 +65,7 @@ struct FRHICommandTransitionTextures;
 struct FRHICommandTransitionTexturesArray;
 struct FRHICommandUpdateTextureReference;
 struct FRHICommandBuildAccelerationStructure;
+struct FRHICommandClearRayTracingBindings;
 struct FRHICommandRayTraceOcclusion;
 struct FRHICommandRayTraceIntersection;
 struct FRHICommandRayTraceDispatch;
@@ -569,6 +570,12 @@ void FRHICommandBuildAccelerationStructure::Execute(FRHICommandListBase& CmdList
 	{
 		INTERNAL_DECORATOR(RHIBuildAccelerationStructure)(Scene);
 	}
+}
+
+void FRHICommandClearRayTracingBindings::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(ClearRayTracingBindings);
+	INTERNAL_DECORATOR(RHIClearRayTracingBindings)(Scene);
 }
 
 void FRHICommandUpdateAccelerationStructures::Execute(FRHICommandListBase& CmdList)
