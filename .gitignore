@@ -34,7 +34,6 @@
 !*.def
 !*.exp
 !*.manifest
-
 # Re-ignore vs host manifest
 *.vshost.exe.manifest
 
@@ -125,7 +124,6 @@
 /.kdev4/
 /UE4CodeCompletionFolders.txt
 /UE4CodeLitePreProcessor.txt
-
 # Add exceptions for Mac Mono binaries needed to run GitDependencies.exe.
 !/Engine/Binaries/ThirdParty/Mono/Mac/bin/*
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc/mono/config
@@ -212,3 +210,5 @@ Engine/Binaries/DotNET/SwarmAgent.Options.xml
 
 # Ignore the headers and cpp files in the clang toolchain on Linux
 Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/**
+
+FortniteGame/
