@@ -25,6 +25,7 @@
 #include "K2Node_CustomEvent.h"
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_EventNodeInterface.h"
+#include "BlueprintEditor.h"
 #include "ScopedTransaction.h"
 
 #include "DetailLayoutBuilder.h"
