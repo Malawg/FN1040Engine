@@ -130,7 +130,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 		ExportTimeIncrement.SetSecondDouble( TimePerKey );
 
 		int32 BoneTreeIndex = Skeleton->GetSkeletonBoneIndexFromMeshBoneIndex(SkelMesh, BoneIndex);
-		int32 BoneTrackIndex = Skeleton->GetAnimationTrackIndex(BoneTreeIndex, AnimSeq, true);
+		int32 BoneTrackIndex = Skeleton->GetRawAnimationTrackIndex(BoneTreeIndex, AnimSeq);
 		if(BoneTrackIndex == INDEX_NONE)
 		{
 			// If this sequence does not have a track for the current bone, then skip it
@@ -505,6 +505,7 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, AActor* 
 	}
 
 	FTransform InitialInvParentTransform;
+	TArray<FTransform> LocalBoneTransforms = SkeletalMeshComponent->GetBoneSpaceTransforms();
 
 	float SampleTime;
 	for(SampleTime = AnimationStart; SampleTime <= AnimationEnd; SampleTime += SamplingRate)
@@ -560,7 +561,7 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, AActor* 
 				Curves[i]->KeyModifyBegin();
 			}
 
-			FTransform BoneTransform = SkeletalMeshComponent->BoneSpaceTransforms[BoneIndex];
+			FTransform BoneTransform = LocalBoneTransforms[BoneIndex];
 
 			if (GetExportOptions()->MapSkeletalMotionToRoot && BoneIndex == 0)
 			{

@@ -7,6 +7,7 @@
 #include "EditorReimportHandler.h"
 #include "Animation/AnimMontage.h"
 #include "Factories/AnimCompositeFactory.h"
+#include "Factories/AnimStreamableFactory.h"
 #include "Factories/AnimMontageFactory.h"
 #include "Factories/PoseAssetFactory.h"
 #include "EditorFramework/AssetImportData.h"
@@ -78,6 +79,16 @@ void FAssetTypeActions_AnimSequence::FillCreateMenu(FMenuBuilder& MenuBuilder, c
 		);
 
 	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AnimSequence_NewAnimStreamable", "Create AnimStreamable"),
+		LOCTEXT("AnimSequence_NewAnimStreamableTooltip", "Creates an AnimStreamable using the selected anim sequence."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.AnimMontage"),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::ExecuteNewAnimStreamable, Sequences),
+			FCanExecuteAction()
+		)
+	);
+	
+	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AnimSequence_NewPoseAsset", "Create PoseAsset"),
 		LOCTEXT("AnimSequence_NewPoseAssetTooltip", "Creates an PoseAsset using the selected anim sequence."),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.PoseAsset"),
@@ -128,6 +139,21 @@ void FAssetTypeActions_AnimSequence::ExecuteNewAnimComposite(TArray<TWeakObjectP
 	UAnimCompositeFactory* Factory = NewObject<UAnimCompositeFactory>();
 
 	CreateAnimationAssets(Objects, UAnimComposite::StaticClass(), Factory, DefaultSuffix, FOnConfigureFactory::CreateSP(this, &FAssetTypeActions_AnimSequence::ConfigureFactoryForAnimComposite));
+}
+
+void FAssetTypeActions_AnimSequence::ExecuteNewAnimStreamable(TArray<TWeakObjectPtr<UAnimSequence>> Objects) const
+{
+	const FString DefaultSuffix = TEXT("_Streamable");
+	UAnimStreamableFactory* Factory = NewObject<UAnimStreamableFactory>();
+
+	auto StreamableConfigure = [](UFactory* AssetFactory, UAnimSequence* SourceAnimation) -> bool
+	{
+		UAnimStreamableFactory* StreamableAnimFactory = CastChecked<UAnimStreamableFactory>(AssetFactory);
+		StreamableAnimFactory->SourceAnimation = SourceAnimation;
+		return true;
+	};
+
+	CreateAnimationAssets(Objects, UAnimStreamable::StaticClass(), Factory, DefaultSuffix, FOnConfigureFactory::CreateLambda(StreamableConfigure));
 }
 
 void FAssetTypeActions_AnimSequence::ExecuteNewAnimMontage(TArray<TWeakObjectPtr<UAnimSequence>> Objects) const

@@ -33,6 +33,8 @@
 #include "Animation/AnimComposite.h"
 #include "SAnimCompositeEditor.h"
 #include "Animation/PoseAsset.h"
+#include "Animation/AnimStreamable.h"
+#include "SAnimStreamableEditor.h"
 #include "SPoseEditor.h"
 #include "Animation/BlendSpace.h"
 #include "SAnimationBlendSpace.h"
@@ -374,6 +376,13 @@ TSharedRef<SWidget> FPersonaModule::CreateEditorWidgetForAnimDocument(const TSha
 				.OnObjectsSelected(InArgs.OnDespatchObjectsSelected);
 
 			OutDocumentLink = TEXT("Engine/Animation/AnimMontage");
+		}
+		else if (UAnimStreamable* StreamableAnim = Cast<UAnimStreamable>(InAnimAsset))
+		{
+			Result = SNew(SAnimStreamableEditor, InArgs.PreviewScene.Pin().ToSharedRef(), InArgs.EditableSkeleton.Pin().ToSharedRef())
+				.StreamableAnim(StreamableAnim);
+
+			OutDocumentLink = TEXT("Engine/Animation/Sequences");
 		}
 		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(InAnimAsset))
 		{

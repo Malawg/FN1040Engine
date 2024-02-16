@@ -323,7 +323,7 @@ bool FAssetEditorManager::OpenEditorForAsset(UObject* Asset, const EToolkitMode:
 	{
 		if (Package->bIsCookedForEditor)
 		{
-			return false;
+			//return false;
 		}
 	}
 	
