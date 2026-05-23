@@ -461,21 +461,34 @@ void FQuadricSkeletalMeshReduction::ConvertToFSkinnedSkeletalMesh( const FSkelet
 
 
 
-	auto ApplySkinning = [](const FMatrix& XForm, FSoftSkinVertex& Vertex)->void
+	auto ApplySkinning = [](const FMatrix& XForm, FSoftSkinVertex& Vertex)->bool
 	{
+		// Some imported models will have garbage tangent space
+		bool bHasBadNTB =  ( Vertex.TangentX.ContainsNaN() || Vertex.TangentY.ContainsNaN() || Vertex.TangentZ.ContainsNaN() );
+
 		// transform position
 		FVector WeightedPosition = XForm.TransformPosition(Vertex.Position);
-		FVector WeightedTangentX = XForm.TransformVector(Vertex.TangentX);
-		FVector WeightedTangentY = XForm.TransformVector(Vertex.TangentY);
-		FVector WeightedTangentZ = XForm.TransformVector(Vertex.TangentZ);
 
+		// transform tangent space
+		FVector WeightedTangentX(1.f, 0.f, 0.f);
+		FVector WeightedTangentY(0.f, 1.f, 0.f);
+		FVector WeightedTangentZ(0.f, 0.f, 1.f);
+
+		if (!bHasBadNTB)
+		{
+			WeightedTangentX = XForm.TransformVector(Vertex.TangentX);
+			WeightedTangentY = XForm.TransformVector(Vertex.TangentY);
+			WeightedTangentZ = XForm.TransformVector(Vertex.TangentZ);
+		}
 		
 		Vertex.TangentX   = WeightedTangentX.GetSafeNormal();
 		Vertex.TangentY   = WeightedTangentY.GetSafeNormal();
-		uint8 WComponent  = Vertex.TangentZ.W;                    // NB: this looks bad.. the component of the vector is a float..
+		float WComponent  = (bHasBadNTB) ? 1.f : Vertex.TangentZ.W;             
 		Vertex.TangentZ   = WeightedTangentZ.GetSafeNormal();
 		Vertex.TangentZ.W = WComponent;
 		Vertex.Position   = WeightedPosition;
+
+		return bHasBadNTB;
 	};
 
 	auto CreateSkinningMatrix = [&BoneMatrices](const FSoftSkinVertex& Vertex, const FSkelMeshSection& Section, bool& bValidBoneWeights)->FMatrix
@@ -597,9 +610,8 @@ void FQuadricSkeletalMeshReduction::ConvertToFSkinnedSkeletalMesh( const FSkelet
 	check(TexCoordCount <= MAX_TEXCOORDS);
 
 	
-	
 	// Update the verts to the skinned location.
-
+	int32 NumBadNTBSpace = 0;
 	for (int32 SectionIndex = 0; SectionIndex < SectionCount; ++SectionIndex)
 	{
 		const FSkelMeshSection& Section  = SrcLODModel.Sections[SectionIndex];
@@ -614,9 +626,15 @@ void FQuadricSkeletalMeshReduction::ConvertToFSkinnedSkeletalMesh( const FSkelet
 			// Use the bone weights for this vertex to create a blended matrix 
 			const FMatrix BlendedMatrix = CreateSkinningMatrix(SkinVertex, Section, bHasValidBoneWeights);
 
-			// Update this Skin Vertex to the correct location, normal, etc.
-			ApplySkinning(BlendedMatrix, SkinVertex);
 
+			// Update this Skin Vertex to the correct location, normal, etc.
+			// also replace NaN tangent spaces with default tangent before skinning
+			bool bHasBadNTB = ApplySkinning(BlendedMatrix, SkinVertex);
+
+			if (bHasBadNTB)
+			{
+				NumBadNTBSpace++;
+		}
 		}
 
 		// Report any error with invalid bone weights
@@ -624,6 +642,11 @@ void FQuadricSkeletalMeshReduction::ConvertToFSkinnedSkeletalMesh( const FSkelet
 		{
 			UE_LOG(LogSkeletalMeshReduction, Warning, TEXT("Building LOD %d - Encountered questionable vertex weights in source."), LODIndex);
 		}
+	}
+
+	if (NumBadNTBSpace > 0)
+	{
+		UE_LOG(LogSkeletalMeshReduction, Warning, TEXT("There were NaNs in the Tangent Space of %d source model vertices."), NumBadNTBSpace);
 	}
 
 	// -- Make the index buffer; skipping the "SkipSections"
@@ -1425,10 +1448,11 @@ void  FQuadricSkeletalMeshReduction::AddSourceModelInfluences( const FSkeletalMe
 			for (int32 i = 0; i < SrcModelInfluences.Num(); ++i)
 			{
 				const SkeletalMeshImportData::FVertInfluence& VertInfluence = SrcModelInfluences[i];
-				const int32 VtxId = VertInfluence.VertIndex;  checkSlow(VtxId < NumImportVertex);
-				
-				
-				VtxToBoneIdWeightMap[VtxId].SetElement(VertInfluence.BoneIndex, VertInfluence.Weight);
+				const int32 VtxId = VertInfluence.VertIndex;
+				if (VtxId < NumImportVertex)
+				{
+					VtxToBoneIdWeightMap[VtxId].SetElement(VertInfluence.BoneIndex, VertInfluence.Weight);
+				}
 			}
 
 			// sort the bones and limit to MaxBonesPerVertex
@@ -1545,11 +1569,16 @@ void FQuadricSkeletalMeshReduction::ConvertToFSkeletalMeshLODModel( const int32 
 		DummyMap[PointIdx] = PointIdx;
 	}
 
-	// Make sure we do not recalculate normals
+	// Make sure we do not recalculate normals or remove any degenerated data (threshold force to zero)
 
 	IMeshUtilities::MeshBuildOptions Options;
 	Options.bComputeNormals = false;
 	Options.bComputeTangents = false;
+	Options.bUseMikkTSpace = true; //Avoid builtin build by specifying true for mikkt space
+	Options.OverlappingThresholds.ThresholdPosition = 0.0f;
+	Options.OverlappingThresholds.ThresholdTangentNormal = 0.0f;
+	Options.OverlappingThresholds.ThresholdUV = 0.0f;
+	Options.bRemoveDegenerateTriangles = false;
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 	
 	// Create skinning streams for NewModel.
@@ -1568,7 +1597,7 @@ void FQuadricSkeletalMeshReduction::ConvertToFSkeletalMeshLODModel( const int32 
 	// Set texture coordinate count on the new model.
 	NewModel.NumTexCoords = SkeletalMeshData.TexCoordCount;
 
-	checkSlow(NewModel.MaxImportVertex + 1  == SkinnedMesh.NumVertices()); 
+
 
 	// Update the alternate weights
 	
@@ -1612,7 +1641,8 @@ bool FQuadricSkeletalMeshReduction::ReduceSkeletalLODModel( const FSkeletalMeshL
 	ConvertToFSkinnedSkeletalMesh(SrcModel, BoneMatrices, LODIndex, SkinnedSkeletalMesh);
 
 	int32 IterationNum = 0;
-
+	//We keep the original MaxNumVerts because if we iterate we want to still compare with the original request.
+	uint32 OriginalMaxNumVertsSetting = Settings.MaxNumOfVerts;
 	do 
 	{
 		if (bOptimizeMesh)
@@ -1655,8 +1685,7 @@ bool FQuadricSkeletalMeshReduction::ReduceSkeletalLODModel( const FSkeletalMeshL
 
 		// We may need to do additional simplification if the user specified a hard number limit for verts and
 		// the internal chunking during conversion split some verts.
-
-		if (bUseMaxVertexCriterion && OutSkeletalMeshLODModel.NumVertices > Settings.MaxNumOfVerts)
+		if (bUseMaxVertexCriterion && OutSkeletalMeshLODModel.NumVertices > OriginalMaxNumVertsSetting && OutSkeletalMeshLODModel.NumVertices > 6)
 		{
 			const bool bTerminatedOnVertCount = (Settings.TerminationCriterion == SMTC_AbsNumOfVerts) ||
 				                                (Settings.TerminationCriterion == SMTC_AbsTriangleOrVert && !(SkinnedSkeletalMesh.NumIndices() / 3 <= (int32)Settings.MaxNumOfTriangles));
@@ -1664,14 +1693,11 @@ bool FQuadricSkeletalMeshReduction::ReduceSkeletalLODModel( const FSkeletalMeshL
 			if (bTerminatedOnVertCount)
 			{
 				// Some verts were created by chunking - we need simplify more.
-				int32 ExcessVerts = (int32)OutSkeletalMeshLODModel.NumVertices - (int32)Settings.MaxNumOfVerts + IterationNum;
+				int32 ExcessVerts = (int32)(OutSkeletalMeshLODModel.NumVertices - OriginalMaxNumVertsSetting);
 				Settings.MaxNumOfVerts = FMath::Max((int32)Settings.MaxNumOfVerts - ExcessVerts, 6);
 
 				UE_LOG(LogSkeletalMeshReduction, Log, TEXT("Chunking to limit unique bones per section generated additional vertices - continuing simplification of LOD %d "), LODIndex);
-
-				ConvertToFSkinnedSkeletalMesh(OutSkeletalMeshLODModel, BoneMatrices, LODIndex, SkinnedSkeletalMesh);
-
-				
+				ConvertToFSkinnedSkeletalMesh(SrcModel, BoneMatrices, LODIndex, SkinnedSkeletalMesh);
 			}
 			else
 			{
@@ -1932,7 +1958,7 @@ void FQuadricSkeletalMeshReduction::ReduceSkeletalMesh(USkeletalMesh& SkeletalMe
 			// fix up chunks to remove the bones that set to be removed
 			for (int32 SectionIndex = 0; SectionIndex < NewModel->Sections.Num(); ++SectionIndex)
 			{
-				MeshBoneReductionInterface->FixUpSectionBoneMaps(NewModel->Sections[SectionIndex], BonesToRemove);
+				MeshBoneReductionInterface->FixUpSectionBoneMaps(NewModel->Sections[SectionIndex], BonesToRemove, NewModel->SkinWeightProfiles);
 			}
 		}
 
@@ -1980,7 +2006,7 @@ void FQuadricSkeletalMeshReduction::ReduceSkeletalMesh(USkeletalMesh& SkeletalMe
 			// fix up chunks to remove the bones that set to be removed
 			for (int32 SectionIndex = 0; SectionIndex < NewModel->Sections.Num(); ++SectionIndex)
 			{
-				MeshBoneReductionInterface->FixUpSectionBoneMaps(NewModel->Sections[SectionIndex], BonesToRemove);
+				MeshBoneReductionInterface->FixUpSectionBoneMaps(NewModel->Sections[SectionIndex], BonesToRemove, NewModel->SkinWeightProfiles);
 			}
 		}
 
